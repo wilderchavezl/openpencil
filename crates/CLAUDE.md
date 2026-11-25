@@ -342,7 +342,7 @@ Smoke: `crates/openpencil-shell-web/smoke/step-1b.html` — start `python3 -m ht
 7. `press_property_overlay_tiers` → `press_panel_dispatch_tiers` → `press_property_panel_tier`
 8. `press_git_and_chat_tiers`
 9. `press_toolbar_tiers`
-10. `press_layer_and_click_tiers` — LayerPanel rows / Page rows + chat-defocus
+10. `press_layer_and_click_tiers` — the LayerPanel's scrollbar gutters (`press_flow::layer_panel_press`), then LayerPanel rows / Page rows + chat-defocus
 11. `press_canvas_tier` → `press_canvas_select_tier` — empty-canvas press clears selection (collapsing the right rail) and starts the pan / marquee drag
 
 The motion timeline docks *inside* the canvas area: `canvas_region` excludes its strip (`motion_timeline_rect`), so every canvas hit-test, the StatusBar, the toolbar and the chat sit above it. Its hit-test also claims a 3 px band above its top edge (height drag) and, while open, its screen dropdown, which rises over the canvas. A timeline drag keeps the pointer (native tier 3b, web right after the VariablesPanel resize; Alt turns snapping off), release writes it as one undo step, Escape cancels it first thing in both escape ladders (`host_escape_transitions::escape_motion_timeline`), and Delete / Backspace take selected timeline keyframes before the canvas selection. A press on a lane selects its node, so the Inspector's Motion section follows; a selected keyframe of that node turns the section into keyframe-values mode, which is why presses inside the property panel keep the keyframe selection. Cursors come from `motion_timeline_flow::{drag_cursor, hover_cursor}` (native `cursor_hint`, web `motion_timeline_cursor_css` → the canvas element's `style.cursor`).
@@ -368,7 +368,7 @@ FFmpeg/ffprobe are required for media IO. See `op-audio/README.md` for details.
 
 Web's `apply_press` runs the same order with two extra tiers split out (`press_import_locale_tiers`, `press_variables_tiers`, `press_font_and_picker_tiers`) because its overlay set differs; the relative priority is identical.
 
-`apply_cursor_move` (native `widget_host/input.rs`) runs its own 10-tier ladder: modals → floating panels → a live rail-resize drag → a motion timeline drag → in-flight property/text/crop/node/pen drags (pointer capture) → menus + Git panel → property-panel popovers → StatusBar/align/model-picker → TopBar → the left rail's slides tab → the single-shot chat probe (deliberately non-consuming, so the late drags still run) → late pointer-capture drags → base hover. The rail resize sits with the early pointer-capture drags rather than the late ones because its pointer travels back *over* the rail it is resizing, where the slides-tab hover tier would otherwise claim the move — which is exactly why the left rail could once be dragged wider but never narrower. It keeps one owned `PropertyPanel` snapshot per event in `CursorMoveCtx::property_panel_probe` so the expensive snapshot/i18n work happens at most once.
+`apply_cursor_move` (native `widget_host/input.rs`) runs its own 10-tier ladder: modals → floating panels → a live rail-resize drag (and a LayerPanel scrollbar drag, for the same reason) → a motion timeline drag → in-flight property/text/crop/node/pen drags (pointer capture) → menus + Git panel → property-panel popovers → StatusBar/align/model-picker → TopBar → the left rail's slides tab → the single-shot chat probe (deliberately non-consuming, so the late drags still run) → late pointer-capture drags → base hover. The rail resize sits with the early pointer-capture drags rather than the late ones because its pointer travels back *over* the rail it is resizing, where the slides-tab hover tier would otherwise claim the move — which is exactly why the left rail could once be dragged wider but never narrower. It keeps one owned `PropertyPanel` snapshot per event in `CursorMoveCtx::property_panel_probe` so the expensive snapshot/i18n work happens at most once.
 
 ### Coordinate invariant
 
@@ -475,6 +475,7 @@ Widget-typed shared logic lives in **`op-editor-ui/src/widgets/`**:
 | `image_crop_flow.rs`                                       | Figma-style image-fill crop gesture                                                |
 | `image_popover_input_flow.rs`                              | Mouse selection in the image Search / Generate text inputs                         |
 | `scroll_flow.rs`                                           | Panel wheel / trackpad-pan scrolling                                               |
+| `layer_scrollbar_flow.rs`                                  | LayerPanel Pages / Layers scrollbars: thumb press (a track press centres it there), drag, release. Desktop only; touch scrolls by dragging the rows |
 | `cursor_hover_flow.rs`                                     | Cursor-move hover resolution                                                       |
 | `account_press_flow.rs`                                    | Sign-in modal + signed-in account-dropdown press flow                              |
 | `missing_fonts_flow.rs`                                    | Missing-font prompt: scroll, press dispatch, detection/refresh bookkeeping         |

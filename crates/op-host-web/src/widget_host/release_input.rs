@@ -71,6 +71,10 @@ impl WidgetHost {
         if self.release_motion_timeline() {
             return true;
         }
+        if op_editor_ui::widgets::layer_scrollbar_flow::release(&mut self.editor_state) {
+            self.mark_dirty();
+            return true;
+        }
         if self.release_selection_handle_drag() {
             return true;
         }
@@ -155,6 +159,10 @@ impl WidgetHost {
             return true;
         }
         if self.release_motion_timeline() {
+            return true;
+        }
+        if op_editor_ui::widgets::layer_scrollbar_flow::release(&mut self.editor_state) {
+            self.mark_dirty();
             return true;
         }
         if self.release_selection_handle_drag() {

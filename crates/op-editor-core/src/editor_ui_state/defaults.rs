@@ -67,6 +67,7 @@ impl Default for EditorUiState {
             layer_layers_scroll: Default::default(),
             layer_pages_h_scroll: Default::default(),
             layer_layers_h_scroll: Default::default(),
+            layer_scrollbar_drag: None,
             import_menu_open: false,
             import_menu: jian_widgets::components::select::SelectState::default(),
             figma_import_open: false,

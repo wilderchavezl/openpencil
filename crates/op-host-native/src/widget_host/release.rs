@@ -89,6 +89,10 @@ impl WidgetHostNative {
         if self.panel_resize.take().is_some() {
             return true;
         }
+        if op_editor_ui::widgets::layer_scrollbar_flow::release(&mut self.editor_state) {
+            self.mark_dirty();
+            return true;
+        }
         if self.release_motion_timeline() {
             return true;
         }
@@ -265,6 +269,10 @@ impl WidgetHostNative {
             return true;
         }
         if self.panel_resize.take().is_some() {
+            return true;
+        }
+        if op_editor_ui::widgets::layer_scrollbar_flow::release(&mut self.editor_state) {
+            self.mark_dirty();
             return true;
         }
         if self.release_motion_timeline() {

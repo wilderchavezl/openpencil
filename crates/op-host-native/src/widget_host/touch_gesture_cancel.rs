@@ -141,6 +141,7 @@ impl WidgetHostNative {
         cancelled |= self.chat_text_selection_drag.take().is_some();
         cancelled |= self.text_edit_selection_drag.take().is_some();
         cancelled |= self.panel_resize.take().is_some();
+        cancelled |= op_editor_ui::widgets::layer_scrollbar_flow::release(&mut self.editor_state);
         cancelled |= self.variables_resize.take().is_some();
         cancelled |= self.node_drag.take().is_some();
         cancelled |= self.handle_drag.take().is_some();

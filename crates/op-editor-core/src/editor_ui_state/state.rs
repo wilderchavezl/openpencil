@@ -184,6 +184,8 @@ pub struct EditorUiState {
     /// Horizontal scroll offset (px, ≥ 0) of the LayerPanel's 图层
     /// tree content. Needed for deeply nested layer trees.
     pub layer_layers_h_scroll: jian_core::scroll::ScrollState,
+    /// LayerPanel scrollbar thumb drag in flight, if any.
+    pub layer_scrollbar_drag: Option<super::layer_scrollbar::LayerScrollbarDrag>,
     /// Top-bar import dropdown (`从 Figma 导入` / `从 HTML 导入`).
     pub import_menu_open: bool,
     /// Shared `Select` scroll / hover state for that dropdown.

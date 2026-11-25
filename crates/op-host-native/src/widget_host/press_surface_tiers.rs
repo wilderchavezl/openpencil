@@ -202,21 +202,20 @@ impl WidgetHostNative {
             return Some(true);
         }
         // 3. apply_click — LayerPanel + chat-defocus. Peek the
-        //    LayerPanel hit-test for a drag-to-reorder candidate.
+        //    LayerPanel first: a scrollbar thumb drag, or a
+        //    drag-to-reorder candidate on a layer row.
         if self.layers_panel_visible() && !self.editor_state.editor_ui.touch_chrome() {
-            use op_editor_ui::widgets::LayerPanelHit;
+            use op_editor_ui::widgets::press_flow;
             let layer_rect = self.layers_content_rect(viewport_width, viewport_height);
-            let panel = self.layer_panel();
-            if let Some(LayerPanelHit::Layer(node_id)) =
-                panel.hit_test(layer_rect, Point2D::new(x, y))
-            {
-                self.layer_drag = Some(crate::widget_host::LayerDragState {
-                    source: node_id,
-                    start_y: y,
-                    current_x: x,
-                    current_y: y,
-                    active: false,
-                });
+            if press_flow::layer_panel_press(
+                &self.layer_panel(),
+                layer_rect,
+                Point2D::new(x, y),
+                &mut self.editor_state,
+                &mut self.layer_drag,
+            ) {
+                self.mark_dirty();
+                return Some(true);
             }
         }
         let consumed = self.apply_click(x, y, viewport_width, viewport_height);
@@ -226,3 +225,7 @@ impl WidgetHostNative {
         None
     }
 }
+
+#[cfg(test)]
+#[path = "layer_scrollbar_host_tests.rs"]
+mod layer_scrollbar_tests;

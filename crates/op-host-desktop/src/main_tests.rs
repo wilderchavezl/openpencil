@@ -293,6 +293,40 @@ fn panel_resize_drag_continues_inside_left_layer_panel() {
 }
 
 #[test]
+fn layer_scrollbar_drag_keeps_receiving_moves_over_the_layer_panel() {
+    let mut app = DesktopApp::new(None);
+    let rows = (0..80)
+        .map(|row| format!(r#"{{"type":"rectangle","id":"r-{row}","width":10,"height":10}}"#))
+        .collect::<Vec<_>>()
+        .join(",");
+    let src = format!(
+        r#"{{"version":"1.0.0","children":[],"pages":[{{"id":"p","name":"Page","children":[{rows}]}}]}}"#
+    );
+    let doc = jian_ops_schema::load_str(&src)
+        .expect("fixture parses")
+        .value;
+    app.host
+        .install_imported_state(op_editor_core::EditorState::from_document(doc));
+    let (vw, vh) = (app.viewport_width, app.viewport_height);
+    // The Layers scrollbar gutter, near the bottom of the rail: the press
+    // pages the rows toward their end.
+    let x = app.host.editor_state().editor_ui.layer_panel_width - 7.0;
+    assert!(app.host.apply_press(x, vh - 40.0, vw, vh));
+    assert!(app.host.is_dragging_layer_scrollbar());
+    let paged = app.host.editor_state().editor_ui.layer_layers_scroll.offset;
+    assert!(paged > 0.0);
+
+    // Back up over the rows, inside the rail the runner otherwise keeps
+    // to its own hover pass.
+    app.pending_cursor_move = Some((x, vh - 240.0));
+    assert!(app.drain_pending_cursor_move());
+    assert!(
+        app.host.editor_state().editor_ui.layer_layers_scroll.offset < paged,
+        "an in-flight scrollbar drag must keep receiving cursor moves over the layer panel"
+    );
+}
+
+#[test]
 fn hidden_model_picker_is_healed_over_the_layer_panel() {
     let mut app = DesktopApp::new(None);
     app.host.editor_state_mut().chat.minimize();

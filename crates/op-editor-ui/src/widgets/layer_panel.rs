@@ -783,6 +783,7 @@ impl Widget for LayerPanel {
         }
 
         cx.backend.restore();
+        self.paint_scrollbars(cx, rect, &r);
 
         if let Some((ghost, cursor_y)) = &self.drag_ghost {
             paint_drag_ghost(cx, &self.theme, ghost, *cursor_y, rect, self.metrics);
