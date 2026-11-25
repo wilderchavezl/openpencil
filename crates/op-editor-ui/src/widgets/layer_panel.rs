@@ -8,8 +8,8 @@ use crate::widgets::editor_state_ext::theme_for;
 use crate::widgets::icons::{draw_icon, Icon};
 use crate::widgets::layer_panel_cache::{self, CachedLayerRows};
 use crate::widgets::layer_panel_metrics::{
-    add_page_target, collapse_target, delete_page_target, glyph_rect_in, layer_action_targets,
-    layer_drag_target, layer_node_icon_x, LayerPanelMetrics,
+    collapse_target, delete_page_target, glyph_rect_in, layer_action_targets, layer_drag_target,
+    layer_node_icon_x, LayerPanelMetrics,
 };
 use crate::widgets::layer_panel_walkers::{
     animated, apply_layer_rename, icon_for_node, kind_label, layer_regions, layers_content_width,
@@ -23,7 +23,7 @@ use op_editor_core::{NodeId, SelectionState};
 use std::rc::Rc;
 
 use jian_ops_schema::node::PenNode;
-use op_editor_core::editor_ui_state::EditorUiState;
+use op_editor_core::editor_ui_state::{EditorUiState, LayerPanelSection, LayerSectionsCollapsed};
 use op_editor_core::pen_node_ext::PenNodeExt;
 use op_editor_core::EditorState;
 
@@ -39,8 +39,7 @@ pub(crate) const ROW_PAD_X: f32 = 12.0;
 use crate::widgets::layer_panel_paint::{
     layer_content_clip_rect_with_metrics, layer_label_available_width_with_metrics,
     paint_drag_ghost, paint_layer_action_backing, paint_layer_drag_handle, paint_motion_mark,
-    paint_rename_input_with_metrics, paint_section_header_with_metrics, truncate_to_fit,
-    truncate_to_fit_measured,
+    paint_rename_input_with_metrics, truncate_to_fit, truncate_to_fit_measured,
 };
 
 /// One row in the layers tree — flat depth-walked view.
@@ -99,6 +98,8 @@ pub struct LayerPanel {
     /// Scroll state for the bounded Pages / Layers regions.
     pub pages_scroll: LayerScrollSnapshot,
     pub layers_scroll: LayerScrollSnapshot,
+    /// Pages / Layers sections folded to their header row.
+    pub sections: LayerSectionsCollapsed,
 }
 
 impl LayerPanel {
@@ -194,6 +195,7 @@ impl LayerPanel {
                 state.editor_ui.layer_layers_h_scroll,
                 layers_content_width,
             ),
+            sections: state.editor_ui.layer_sections_collapsed,
         }
     }
 
@@ -280,14 +282,30 @@ impl LayerPanel {
             hovered_page: None,
             pages_scroll: LayerScrollSnapshot::default(),
             layers_scroll: LayerScrollSnapshot::default(),
+            sections: LayerSectionsCollapsed::default(),
         }
     }
 
     pub(crate) fn intrinsic_height(&self) -> f32 {
+        let rows_h = |section, rows: f32, row_h: f32| {
+            if self.sections.is_collapsed(section) {
+                0.0
+            } else {
+                rows * row_h
+            }
+        };
         let pages_h = self.metrics.section_header_height
-            + self.pages.len() as f32 * self.metrics.page_row_height;
+            + rows_h(
+                LayerPanelSection::Pages,
+                self.pages.len() as f32,
+                self.metrics.page_row_height,
+            );
         let layers_h = self.metrics.section_header_height
-            + self.items.len().max(1) as f32 * self.metrics.layer_row_height;
+            + rows_h(
+                LayerPanelSection::Layers,
+                self.items.len().max(1) as f32,
+                self.metrics.layer_row_height,
+            );
         pages_h + self.metrics.section_gap + layers_h + 16.0
     }
 
@@ -303,6 +321,7 @@ impl LayerPanel {
             pages: self.pages_scroll,
             layers: self.layers_scroll,
             metrics: self.metrics,
+            collapsed: self.sections,
         })
     }
 
@@ -362,6 +381,8 @@ pub enum LayerPanelHit {
     ToggleHidden(NodeId),
     ToggleLocked(NodeId),
     ToggleCollapsed(NodeId),
+    /// Fold / unfold a whole section from its header row.
+    ToggleSection(LayerPanelSection),
     AddPage,
     DeletePage(usize),
 }
@@ -409,31 +430,8 @@ impl Widget for LayerPanel {
         );
 
         let r = self.regions(rect);
-        let mut y = r.pages_header_y;
-
-        // Pages section header.
-        paint_section_header_with_metrics(
-            cx,
-            &self.theme,
-            rect.origin.x,
-            y,
-            rect.size.x,
-            self.pages_label,
-            self.metrics,
-        );
-        // "+" add-page affordance, top-right of header row.
-        let plus = glyph_rect_in(
-            add_page_target(rect, y, self.metrics),
-            self.metrics.glyph_size,
-        );
-        draw_icon(
-            cx.backend,
-            Icon::Plus,
-            plus.origin,
-            self.metrics.glyph_size,
-            self.theme.muted_foreground,
-            1.4,
-        );
+        // Section headers (chevron, label, Pages `+`).
+        self.paint_section_headers(cx, rect, &r);
         // Page rows — clipped + scrolled inside the bounded viewport.
         cx.backend.save();
         cx.backend.clip_rect(Rect {
@@ -447,7 +445,7 @@ impl Widget for LayerPanel {
             self.metrics.page_row_height,
         ) {
             let page = &self.pages[index];
-            y = r.pages_rows_top - r.pages.offset + index as f32 * self.metrics.page_row_height;
+            let y = r.pages_rows_top - r.pages.offset + index as f32 * self.metrics.page_row_height;
             let row = Rect {
                 origin: Point2D::new(rect.origin.x + 6.0, y + 2.0),
                 size: Point2D::new(rect.size.x - 12.0, self.metrics.page_row_height - 4.0),
@@ -518,7 +516,7 @@ impl Widget for LayerPanel {
         }
         cx.backend.restore();
 
-        y = r.layers_header_y;
+        let y = r.layers_header_y;
         // Hairline between Pages and Layers sections — mirrors
         // the TS LayerPanel's `border-t border-border`.
         cx.backend.fill_rect(
@@ -532,16 +530,6 @@ impl Widget for LayerPanel {
             self.theme.border,
         );
 
-        // Layers section header.
-        paint_section_header_with_metrics(
-            cx,
-            &self.theme,
-            rect.origin.x,
-            y,
-            rect.size.x,
-            self.layers_label,
-            self.metrics,
-        );
         // Layer rows — clipped + scrolled inside the bounded viewport.
         cx.backend.save();
         cx.backend.clip_rect(Rect {
@@ -558,7 +546,8 @@ impl Widget for LayerPanel {
             // Live styling overlay — never baked into the cached item.
             let selected = self.is_row_selected(&item.node_id);
             let hovered = self.is_row_hovered(&item.node_id);
-            y = r.layers_rows_top - r.layers.offset + index as f32 * self.metrics.layer_row_height;
+            let y =
+                r.layers_rows_top - r.layers.offset + index as f32 * self.metrics.layer_row_height;
             let row = Rect {
                 origin: Point2D::new(rect.origin.x + 6.0, y + 2.0),
                 size: Point2D::new(rect.size.x - 12.0, self.metrics.layer_row_height - 4.0),

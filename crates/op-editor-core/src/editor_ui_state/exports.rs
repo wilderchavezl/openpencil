@@ -22,6 +22,7 @@ pub use super::home::{
     AppPages, EntrySurface, HomeDevice, HomeFamily, HomeHit, HomeState, InfoKind, SlideRatio,
     TaskDraft,
 };
+pub use super::layer_sections::{LayerPanelSection, LayerSectionsCollapsed};
 pub use super::motion_timeline::{
     MotionTimelineDrag, MotionTimelineState, MotionTimelineTab, TimelineDragAnchor,
     TimelineKeyframeRef,

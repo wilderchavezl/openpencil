@@ -553,6 +553,11 @@ pub fn apply_layer_panel_click(
             state.toggle_node_collapsed(&node_id);
             LayerPanelClick::Dirty
         }
+        LayerPanelHit::ToggleSection(section) => {
+            // Section folding is a chrome preference, never history.
+            state.editor_ui.layer_sections_collapsed.toggle(section);
+            LayerPanelClick::Dirty
+        }
         LayerPanelHit::AddPage => {
             // TS addPage pushes history before the insert
             // (document-store-pages.ts:19-49).

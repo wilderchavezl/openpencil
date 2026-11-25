@@ -324,32 +324,3 @@ pub(super) fn paint_rename_input_with_metrics(
     };
     cx.backend.fill_rect(underline, theme.primary);
 }
-
-pub(super) fn paint_section_header_with_metrics(
-    cx: &mut PaintCx<'_>,
-    theme: &Theme,
-    x: f32,
-    y: f32,
-    width: f32,
-    label: &str,
-    metrics: LayerPanelMetrics,
-) {
-    let header = Rect {
-        origin: Point2D::new(x, y),
-        size: Point2D::new(width, metrics.section_header_height),
-    };
-    let header_text = TextLayout::single_run(
-        label,
-        "system-ui",
-        metrics.header_font,
-        (theme.muted_foreground).to_jian(),
-        Point2D::new(0.0, 0.0),
-    );
-    let baseline = if metrics.touch {
-        jian_widgets::centered_text_baseline_y(header, metrics.header_font)
-    } else {
-        y + 19.0
-    };
-    cx.backend
-        .draw_text(&header_text, Point2D::new(x + metrics.row_pad_x, baseline));
-}

@@ -188,7 +188,8 @@ impl WidgetHostNative {
                 }
                 op_editor_ui::widgets::LayerPanelHit::Page(_)
                 | op_editor_ui::widgets::LayerPanelHit::Layer(_)
-                | op_editor_ui::widgets::LayerPanelHit::ToggleCollapsed(_) => None,
+                | op_editor_ui::widgets::LayerPanelHit::ToggleCollapsed(_)
+                | op_editor_ui::widgets::LayerPanelHit::ToggleSection(_) => None,
             };
             if mutation.is_some_and(|mutation| !self.collab_allows_document_mutation(mutation)) {
                 return true;

@@ -683,6 +683,9 @@ pub struct EditorUiState {
     /// rebuilt on load, never serialized, and toggling it never pushes
     /// a history entry.
     pub collapsed_layers: HashSet<NodeId>,
+    /// LayerPanel Pages / Layers sections folded to their header. A
+    /// chrome preference, not document-derived (kept across documents).
+    pub layer_sections_collapsed: LayerSectionsCollapsed,
     /// Last selection anchor that was expanded and revealed in the layers
     /// panel. Compared each frame to auto-reveal when the user changes the
     /// selection. Cleared in `clear_document_derived` on document replacement.

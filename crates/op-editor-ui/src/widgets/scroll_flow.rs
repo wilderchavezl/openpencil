@@ -9,6 +9,7 @@
 //! stay host-side because they are derived from host viewport
 //! bookkeeping, so callers pass them in.
 
+use op_editor_core::editor_ui_state::LayerPanelSection;
 use op_editor_core::size_class::MobileSheetKind;
 use op_editor_core::EditorState;
 
@@ -319,6 +320,12 @@ pub fn reveal_layer_panel_selection(
     }
     let selected = state.selection.anchor.clone();
     if !selected.is_real() {
+        return false;
+    }
+    // A folded Layers section has no row to reveal. Leave the anchor
+    // unrecorded so the reveal runs once the section unfolds, without
+    // re-walking the tree on every frame meanwhile.
+    if panel.is_section_collapsed(LayerPanelSection::Layers) {
         return false;
     }
 

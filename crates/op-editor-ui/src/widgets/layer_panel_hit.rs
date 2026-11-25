@@ -123,6 +123,9 @@ impl LayerPanel {
         if add_page_target(rect, r.pages_header_y, self.metrics).contains(point) {
             return Some(LayerPanelHit::AddPage);
         }
+        if let Some(hit) = self.section_header_at(rect, &r, point) {
+            return Some(hit);
+        }
         // Bounded Pages / Layers viewports — a row only counts as a
         // hit when the cursor is inside its (clipped) viewport, so a
         // row scrolled out of view can't be clicked through.

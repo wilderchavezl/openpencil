@@ -43,6 +43,9 @@ mod layer_panel_hit;
 mod layer_panel_label_tests;
 mod layer_panel_metrics;
 mod layer_panel_paint;
+mod layer_panel_sections;
+#[cfg(test)]
+mod layer_panel_sections_tests;
 #[cfg(test)]
 mod layer_panel_tests;
 #[cfg(test)]

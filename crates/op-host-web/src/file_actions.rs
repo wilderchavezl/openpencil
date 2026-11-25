@@ -376,6 +376,8 @@ fn ingest_html_project(
 pub fn preserve_app_preferences(previous: &EditorState, next: &mut EditorState) {
     let previous_selected_model = previous.chat.selected_model_entry().cloned();
     next.editor_ui.theme_mode = previous.editor_ui.theme_mode;
+    // LayerPanel section folding is a chrome preference, not the document's.
+    next.editor_ui.layer_sections_collapsed = previous.editor_ui.layer_sections_collapsed;
     next.editor_ui.entry_surface = previous.editor_ui.entry_surface;
     next.editor_ui.host_theme_override = previous.editor_ui.host_theme_override;
     next.editor_ui.locale = previous.editor_ui.locale;

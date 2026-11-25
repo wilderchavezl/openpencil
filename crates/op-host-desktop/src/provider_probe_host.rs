@@ -189,6 +189,7 @@ impl DesktopApp {
         let snapshot = crate::ui_prefs::UiPrefsSnapshot {
             pencil_cursor: ui.pencil_cursor_style,
             agent_swarm: ui.agent_swarm_enabled,
+            layer_sections: ui.layer_sections_collapsed,
         };
         if self.last_saved_ui_prefs == Some(snapshot) {
             return;

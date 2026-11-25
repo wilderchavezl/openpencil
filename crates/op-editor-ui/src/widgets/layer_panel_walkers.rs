@@ -17,7 +17,7 @@ use jian_core::scroll::{self, ScrollState};
 use op_editor_core::NodeId;
 
 use jian_ops_schema::node::PenNode;
-use op_editor_core::editor_ui_state::EditorUiState;
+use op_editor_core::editor_ui_state::{EditorUiState, LayerSectionsCollapsed};
 use op_editor_core::pen_node_ext::PenNodeExt;
 use op_editor_core::ui_draft::LayerContextTarget;
 use op_editor_core::EditorState;
@@ -369,6 +369,8 @@ pub struct LayerRegionInput {
     pub pages: LayerScrollSnapshot,
     pub layers: LayerScrollSnapshot,
     pub metrics: LayerPanelMetrics,
+    /// Sections folded to their header row (zero-height viewport).
+    pub collapsed: LayerSectionsCollapsed,
 }
 
 /// Compute the bounded Pages / Layers scroll-region geometry for a
@@ -383,29 +385,60 @@ pub fn layer_regions(input: LayerRegionInput) -> LayerRegions {
         pages,
         layers,
         metrics,
+        collapsed,
     } = input;
 
     let pages_header_y = rect.origin.y + 8.0;
     let pages_rows_top = pages_header_y + metrics.section_header_height;
     let pages_content = pages_len as f32 * metrics.page_row_height;
-    let pages_view_max = metrics.page_row_height * metrics.pages_max_rows as f32;
-    let mut pages_view_h = pages_content.min(pages_view_max);
-    if metrics.touch {
-        let fixed_height = 8.0
-            + metrics.section_header_height
-            + metrics.section_gap
-            + metrics.section_header_height
-            + metrics.layer_row_height * 3.0
-            + 8.0;
-        pages_view_h = pages_view_h.min((rect.size.y - fixed_height).max(0.0));
+    // Room left for page rows once both headers, the gap and the bottom
+    // inset are placed; an expanded Layers section also keeps a minimum
+    // row band on touch.
+    let mut fixed_height = 8.0
+        + metrics.section_header_height
+        + metrics.section_gap
+        + metrics.section_header_height
+        + 8.0;
+    if metrics.touch && !collapsed.layers {
+        fixed_height += metrics.layer_row_height * 3.0;
     }
-    let pages = resolve_layer_scroll(pages, pages_content, pages_view_h, rect.size.x);
+    let pages_room = (rect.size.y - fixed_height).max(0.0);
+    let pages_view_h = if collapsed.pages {
+        0.0
+    } else if collapsed.layers {
+        // Layers folded: the page list takes the rail's remaining height.
+        pages_content.min(pages_room)
+    } else {
+        let capped = pages_content.min(metrics.page_row_height * metrics.pages_max_rows as f32);
+        if metrics.touch {
+            capped.min(pages_room)
+        } else {
+            capped
+        }
+    };
+    let pages = resolve_region_scroll(
+        collapsed.pages,
+        pages,
+        pages_content,
+        pages_view_h,
+        rect.size.x,
+    );
 
     let layers_header_y = pages_rows_top + pages_view_h + metrics.section_gap;
     let layers_rows_top = layers_header_y + metrics.section_header_height;
-    let layers_view_h = (rect.origin.y + rect.size.y - 8.0 - layers_rows_top).max(0.0);
+    let layers_view_h = if collapsed.layers {
+        0.0
+    } else {
+        (rect.origin.y + rect.size.y - 8.0 - layers_rows_top).max(0.0)
+    };
     let layers_content = items_len.max(1) as f32 * metrics.layer_row_height;
-    let layers = resolve_layer_scroll(layers, layers_content, layers_view_h, rect.size.x);
+    let layers = resolve_region_scroll(
+        collapsed.layers,
+        layers,
+        layers_content,
+        layers_view_h,
+        rect.size.x,
+    );
 
     LayerRegions {
         pages_header_y,
@@ -416,6 +449,23 @@ pub fn layer_regions(input: LayerRegionInput) -> LayerRegions {
         layers_rows_top,
         layers_view_h,
         layers,
+    }
+}
+
+/// A folded region has nothing to scroll: wheel input over its header must
+/// not move the hidden list, so it resolves as an empty region. The stored
+/// offsets are left untouched and apply again once the section unfolds.
+fn resolve_region_scroll(
+    folded: bool,
+    stored: LayerScrollSnapshot,
+    content_height: f32,
+    view_height: f32,
+    viewport_width: f32,
+) -> LayerResolvedScroll {
+    if folded {
+        resolve_layer_scroll(LayerScrollSnapshot::default(), 0.0, 0.0, viewport_width)
+    } else {
+        resolve_layer_scroll(stored, content_height, view_height, viewport_width)
     }
 }
 

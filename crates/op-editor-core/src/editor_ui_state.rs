@@ -19,6 +19,7 @@ pub mod git_panel;
 pub mod groups;
 pub mod home;
 pub mod home_example_draft;
+pub mod layer_sections;
 mod methods;
 mod motion_inspector;
 pub mod motion_timeline;
