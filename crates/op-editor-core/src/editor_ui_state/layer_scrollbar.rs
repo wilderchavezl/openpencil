@@ -1,4 +1,5 @@
-//! The LayerPanel scrollbar thumb drag (Pages or Layers row viewport).
+//! The left rail's scrollbar thumb drag: the LayerPanel's Pages or Layers
+//! row viewport, or the slides tab's list.
 //!
 //! View-only chrome state, never part of the document or the undo history.
 //! `clear_document_derived` drops an in-flight drag: its captured content
@@ -6,11 +7,12 @@
 
 use jian_core::scroll::ScrollState;
 
-/// Which bounded LayerPanel row viewport a scrollbar scrolls.
+/// Which left-rail list a scrollbar scrolls.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LayerScrollRegion {
     Pages,
     Layers,
+    Slides,
 }
 
 /// A scrollbar thumb drag in flight. The track geometry is captured at
@@ -46,11 +48,12 @@ impl LayerScrollbarDrag {
 }
 
 impl super::EditorUiState {
-    /// Vertical scroll state of a LayerPanel row viewport.
+    /// Vertical scroll state of a left-rail list.
     pub fn layer_scroll_mut(&mut self, region: LayerScrollRegion) -> &mut ScrollState {
         match region {
             LayerScrollRegion::Pages => &mut self.layer_pages_scroll,
             LayerScrollRegion::Layers => &mut self.layer_layers_scroll,
+            LayerScrollRegion::Slides => &mut self.slides_panel.scroll,
         }
     }
 

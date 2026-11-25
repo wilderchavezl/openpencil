@@ -251,6 +251,7 @@ pub mod image_popover_input_flow;
 mod layer_context_flow;
 pub mod press_flow;
 mod prompt_center_press_flow;
+mod rail_scrollbar;
 mod scene_template_press_flow;
 pub mod scroll_flow;
 

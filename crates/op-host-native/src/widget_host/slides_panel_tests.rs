@@ -539,3 +539,42 @@ fn the_inner_half_of_the_gutter_starts_a_resize_too() {
         "the drag is measured from the press point, not the edge"
     );
 }
+
+#[test]
+fn dragging_the_slide_list_scrollbar_scrolls_it() {
+    let _guard = test_lock();
+    let boards = (0..12)
+        .map(|i| {
+            format!(
+                r#"{{"type":"frame","id":"s-{i}","x":{},"y":0,"width":1920,"height":1080}}"#,
+                i * 2100
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let src = format!(r#"{{"version":"1.0.0","children":[{boards}]}}"#);
+    let doc = jian_ops_schema::load_str(&src).expect("parse").value;
+    let mut host = WidgetHostNative::new();
+    let mut state = EditorState::from_document(doc);
+    state.editor_ui.scenario = Some(TemplateScene::Slides);
+    host.install_imported_state(state);
+    host.editor_state.editor_ui.slides_panel.tab = LeftPanelTab::Slides;
+    let layout = host.slides_panel_frame(VW, VH).expect("slides tab").layout;
+    let max = layout.max_scroll();
+    assert!(max > 0.0, "twelve slides overflow");
+    // The gutter, 4..10 px in from the rail's right edge, near the list's
+    // bottom: the press pages the list to its end.
+    let x = layout.list.origin.x + layout.list.size.x - 7.0;
+    let bottom = layout.list.origin.y + layout.list.size.y - 3.0;
+
+    assert!(host.apply_press(x, bottom, VW, VH));
+    assert_eq!(host.editor_state.editor_ui.slides_panel.pressed, None);
+    assert_eq!(host.editor_state.editor_ui.slides_panel.scroll.offset, max);
+    // Up past the rail's top: the drag keeps the pointer and pins the
+    // list back to its start.
+    host.apply_cursor_move(x + 300.0, -5_000.0);
+    assert_eq!(host.editor_state.editor_ui.slides_panel.scroll.offset, 0.0);
+    host.apply_release_with_viewport(VW, VH);
+    assert!(host.editor_state.editor_ui.layer_scrollbar_drag.is_none());
+    assert!(!host.editor_state.history.can_undo());
+}

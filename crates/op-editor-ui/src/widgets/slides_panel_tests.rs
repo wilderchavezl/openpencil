@@ -672,3 +672,19 @@ fn rail(width: f32) -> Rect {
 
 #[path = "slides_panel_tab_mode_tests.rs"]
 mod tab_mode_tests;
+
+#[test]
+fn an_overflowing_list_paints_its_scrollbar_thumb() {
+    assert!(layout(1, 0.0).scrollbar().thumb.is_none(), "one slide fits");
+    let l = layout(12, 0.0);
+    let thumb = l.scrollbar().thumb.expect("twelve slides overflow");
+    let bar = Rect {
+        origin: Point2D::new(thumb.origin.x + 2.0, thumb.origin.y),
+        size: Point2D::new(2.0, thumb.size.y),
+    };
+    assert!(filled_at(&painted(&l, &panel_of(None, None)), bar));
+    // Right of the cards, clear of the rail's ±4 px width-resize grip.
+    let card = l.card_rect(0);
+    assert!(thumb.origin.x >= card.origin.x + card.size.x);
+    assert!(thumb.origin.x + thumb.size.x <= PANEL.origin.x + PANEL.size.x - 4.0);
+}

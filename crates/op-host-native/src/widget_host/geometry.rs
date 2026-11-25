@@ -66,8 +66,9 @@ impl WidgetHostNative {
         self.panel_resize.is_some()
     }
 
-    /// Whether a LayerPanel scrollbar thumb is being dragged. The runner
-    /// keeps feeding cursor moves over the rail while it is.
+    /// Whether a left-rail scrollbar thumb (LayerPanel or slides list) is
+    /// being dragged. The runner keeps feeding cursor moves over the rail
+    /// while it is.
     pub fn is_dragging_layer_scrollbar(&self) -> bool {
         self.editor_state.editor_ui.layer_scrollbar_drag.is_some()
     }

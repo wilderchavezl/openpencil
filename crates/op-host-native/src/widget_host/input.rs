@@ -657,8 +657,9 @@ impl WidgetHostNative {
         if let Some(consumed) = self.cursor_move_panel_resize_tier(x) {
             return consumed;
         }
-        // A LayerPanel scrollbar drag travels over the rail's rows the same
-        // way, so it captures the pointer just as early.
+        // A left-rail scrollbar drag (LayerPanel or slides list) travels over
+        // the rail's rows the same way, so it captures the pointer just as
+        // early.
         if layer_scrollbar_flow::drag(&mut self.editor_state, point) {
             self.mark_dirty();
             return true;

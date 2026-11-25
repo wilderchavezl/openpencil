@@ -13,6 +13,7 @@
 //! drag). Deciding on release is what lets a click with a shaky hand
 //! still navigate.
 
+use op_editor_core::editor_ui_state::LayerScrollRegion;
 use op_editor_core::scene_template_catalog::TemplateScene;
 use op_editor_core::{EditorState, LeftPanelTab, NodeId, SlidesDrag, SlidesPanelTarget};
 
@@ -348,6 +349,18 @@ pub fn press(state: &mut EditorState, layout: &SlidesPanelLayout, point: Point2D
         panel.drag = None;
         return SlidesPress::Claimed(None);
     }
+    // The scrollbar gutter beats the row under it. Touch chrome has no
+    // gutter: it scrolls by dragging the rows.
+    if !state.editor_ui.touch_chrome()
+        && layout
+            .scrollbar()
+            .press(state, LayerScrollRegion::Slides, point)
+    {
+        let panel = &mut state.editor_ui.slides_panel;
+        panel.pressed = None;
+        panel.drag = None;
+        return SlidesPress::Claimed(None);
+    }
     if !layout.contains_point(point) {
         return SlidesPress::Missed;
     }
@@ -545,3 +558,7 @@ pub fn scroll(
 #[cfg(test)]
 #[path = "slides_panel_flow_tests.rs"]
 mod slides_panel_flow_tests;
+
+#[cfg(test)]
+#[path = "slides_scrollbar_tests.rs"]
+mod slides_scrollbar_tests;

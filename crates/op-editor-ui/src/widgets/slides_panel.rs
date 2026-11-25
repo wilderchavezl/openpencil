@@ -36,6 +36,7 @@ use jian_widgets::centered_text_baseline_y;
 use op_editor_core::{SlidesDrag, SlidesPanelTarget};
 
 use crate::widgets::icons::{draw_icon, Icon};
+use crate::widgets::rail_scrollbar::{ScrollbarGeometry, MIN_THUMB};
 use crate::widgets::slides_panel_actions::{
     SlidesActionLabels, SlidesActionLayout, SlidesActionState, ACTION_BAR_HEIGHT,
 };
@@ -250,6 +251,18 @@ impl SlidesPanelLayout {
     /// How far the list can scroll.
     pub fn max_scroll(&self) -> f32 {
         (self.content_height() - self.list.size.y).max(0.0)
+    }
+
+    /// The list's scrollbar, at the list band's right edge.
+    pub(crate) fn scrollbar(&self) -> ScrollbarGeometry {
+        ScrollbarGeometry::new(
+            self.list.origin.x + self.list.size.x,
+            self.list.origin.y,
+            self.list.size.y,
+            self.content_height(),
+            self.offset,
+            MIN_THUMB,
+        )
     }
 
     /// Rect of row `index`, in screen space. Not clamped to the list: a
@@ -474,6 +487,7 @@ impl SlidesPanel<'_> {
             self.paint_row(cx, theme, layout, index);
         }
         cx.backend.restore();
+        layout.scrollbar().paint(cx, theme);
 
         crate::widgets::slides_panel_actions::paint_bar(
             cx,
