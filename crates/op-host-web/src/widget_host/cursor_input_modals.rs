@@ -41,6 +41,11 @@ impl WidgetHost {
         // turns snapping off.
         let (vw, vh) = (self.last_viewport_w, self.last_viewport_h);
         let point = Point2D::new(x, y);
+        // So does a LayerPanel Pages / Layers divider drag.
+        if op_editor_ui::widgets::layer_split_flow::drag(&mut self.editor_state, point) {
+            self.mark_dirty();
+            return Some(true);
+        }
         if op_editor_ui::widgets::motion_timeline_flow::drag(
             &mut self.editor_state,
             point,

@@ -8,7 +8,9 @@
 use super::cursor_move_ctx::CursorMoveCtx;
 use super::WidgetHostNative;
 use op_editor_core::codegen::CodeSelection;
-use op_editor_ui::widgets::{motion_timeline_flow, AIChatHit, AIChatPlaceholder, PropertyPanel};
+use op_editor_ui::widgets::{
+    layer_split_flow, motion_timeline_flow, AIChatHit, AIChatPlaceholder, PropertyPanel,
+};
 use op_editor_ui::{Point2D, Rect};
 
 /// Minimum cursor travel (logical px) from the node-drag press point
@@ -654,6 +656,12 @@ impl WidgetHostNative {
         // claim the move (see `cursor_move_panel_resize_tier`).
         if let Some(consumed) = self.cursor_move_panel_resize_tier(x) {
             return consumed;
+        }
+        // The LayerPanel divider drag travels back over the rail's rows
+        // the same way, so it captures the pointer just as early.
+        if layer_split_flow::drag(&mut self.editor_state, point) {
+            self.mark_dirty();
+            return true;
         }
         // Tier 3b — a motion timeline drag holds the pointer until release;
         // Alt turns snapping off.

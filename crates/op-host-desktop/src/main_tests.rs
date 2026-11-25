@@ -293,6 +293,43 @@ fn panel_resize_drag_continues_inside_left_layer_panel() {
 }
 
 #[test]
+fn layer_split_drag_keeps_receiving_moves_over_the_layer_panel() {
+    let mut app = DesktopApp::new(None);
+    let pages = (0..20)
+        .map(|page| format!(r#"{{"id":"p-{page}","name":"Page {page}","children":[]}}"#))
+        .collect::<Vec<_>>()
+        .join(",");
+    let src = format!(r#"{{"version":"1.0.0","children":[],"pages":[{pages}]}}"#);
+    let doc = jian_ops_schema::load_str(&src)
+        .expect("fixture parses")
+        .value;
+    app.host
+        .install_imported_state(op_editor_core::EditorState::from_document(doc));
+    let (vw, vh) = (app.viewport_width, app.viewport_height);
+    let x = 120.0;
+    let y = (0..vh as i32)
+        .map(|y| y as f32)
+        .find(|&y| app.host.layer_split_cursor(x, y, vw, vh).is_some())
+        .expect("the rail paints a Pages / Layers divider");
+    assert!(app.host.apply_press(x, y, vw, vh));
+    assert!(app.host.is_resizing_layer_split());
+
+    // Up over the page rows, inside the rail the runner otherwise keeps
+    // to its own hover pass.
+    app.pending_cursor_move = Some((x, y - 64.0));
+    assert!(app.drain_pending_cursor_move());
+    assert!(
+        app.host
+            .editor_state()
+            .editor_ui
+            .layer_split
+            .pages_height
+            .is_some(),
+        "an in-flight divider drag must keep receiving cursor moves over the layer panel"
+    );
+}
+
+#[test]
 fn hidden_model_picker_is_healed_over_the_layer_panel() {
     let mut app = DesktopApp::new(None);
     app.host.editor_state_mut().chat.minimize();

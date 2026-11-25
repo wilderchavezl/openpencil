@@ -8,13 +8,11 @@
 //! (matches native order).
 
 use super::press_ctx::PressCtx;
-use super::{
-    ChatDragState, ChatInputSelectionDragState, ChatTextSelectionDragState, LayerDragState,
-    WidgetHost,
-};
+use super::{ChatDragState, ChatInputSelectionDragState, ChatTextSelectionDragState, WidgetHost};
 use op_editor_core::host_press_transitions as core_press;
 use op_editor_ui::widgets::chat_click_flow;
-use op_editor_ui::widgets::{AIChatHit, AIChatPlaceholder, LayerPanelHit, Toolbar, TOP_BAR_HEIGHT};
+use op_editor_ui::widgets::press_flow;
+use op_editor_ui::widgets::{AIChatHit, AIChatPlaceholder, Toolbar, TOP_BAR_HEIGHT};
 use op_editor_ui::Point2D;
 
 impl WidgetHost {
@@ -132,22 +130,21 @@ impl WidgetHost {
             return Some(true);
         }
         // 3. apply_click — LayerPanel + chat-defocus.
-        //    Pre-seed a `layer_drag` candidate when the press lands
-        //    on a Layer row so a subsequent move past the threshold
-        //    promotes the gesture to a drag-to-reorder.
+        //    The Pages / Layers divider takes the press first; a press
+        //    on a Layer row pre-seeds a `layer_drag` candidate so a
+        //    subsequent move past the threshold promotes the gesture
+        //    to a drag-to-reorder.
         if self.editor_state.editor_ui.sidebar_open {
             let layer_rect = self.layer_panel_rect(viewport_height);
-            let panel = self.layer_panel();
-            if let Some(LayerPanelHit::Layer(node_id)) =
-                panel.hit_test(layer_rect, Point2D::new(x, y))
-            {
-                self.layer_drag = Some(LayerDragState {
-                    source: node_id,
-                    start_y: y,
-                    current_x: x,
-                    current_y: y,
-                    active: false,
-                });
+            if press_flow::layer_panel_press(
+                &self.layer_panel(),
+                layer_rect,
+                Point2D::new(x, y),
+                &mut self.editor_state,
+                &mut self.layer_drag,
+            ) {
+                self.mark_dirty();
+                return Some(true);
             }
         }
         // 2.5. Floating align/distribute toolbar — visible when

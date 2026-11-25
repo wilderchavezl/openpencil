@@ -248,12 +248,7 @@ fn hit_test_resolves_first_layer_row() {
         origin: Point2D::new(0.0, 0.0),
         size: Point2D::new(LAYER_PANEL_WIDTH, panel.intrinsic_height()),
     };
-    let layer_y = 8.0
-        + SECTION_HEADER_HEIGHT
-        + PAGE_ROW_HEIGHT
-        + SECTION_GAP
-        + SECTION_HEADER_HEIGHT
-        + LAYER_ROW_HEIGHT / 2.0;
+    let layer_y = panel.regions(rect).layers_rows_top + LAYER_ROW_HEIGHT / 2.0;
     let p = Point2D::new(rect.size.x / 2.0, layer_y);
     match panel.hit_test(rect, p) {
         Some(LayerPanelHit::Layer(id)) => assert_eq!(id, panel.items[0].node_id),
@@ -529,15 +524,12 @@ fn drop_indicator_matches_post_commit_layout_when_dragging_down() {
     let mut state = four_rects();
     let panel = LayerPanel::from_editor_with_drag_source(&state, &NodeId::new("n1"));
     assert_eq!(panel.items.len(), 3); // A excluded → [B, C, D]
+                                      // Room for every row in the Layers half of the default split.
     let rect = Rect {
         origin: Point2D::new(0.0, 0.0),
-        size: Point2D::new(LAYER_PANEL_WIDTH, panel.intrinsic_height()),
+        size: Point2D::new(LAYER_PANEL_WIDTH, panel.intrinsic_height() + 200.0),
     };
-    let layers_top = 8.0
-        + SECTION_HEADER_HEIGHT
-        + panel.pages.len() as f32 * PAGE_ROW_HEIGHT
-        + SECTION_GAP
-        + SECTION_HEADER_HEIGHT;
+    let layers_top = panel.regions(rect).layers_rows_top;
     let row_top_of_d = layers_top + 2.0 * LAYER_ROW_HEIGHT;
     let drop = panel
         .drop_target_at(rect, Point2D::new(rect.size.x / 2.0, row_top_of_d + 4.0))
@@ -569,11 +561,7 @@ fn drop_target_at_resolves_before_and_after_halves() {
         origin: Point2D::new(0.0, 0.0),
         size: Point2D::new(LAYER_PANEL_WIDTH, panel.intrinsic_height()),
     };
-    let y0 = 8.0
-        + SECTION_HEADER_HEIGHT
-        + panel.pages.len() as f32 * PAGE_ROW_HEIGHT
-        + SECTION_GAP
-        + SECTION_HEADER_HEIGHT;
+    let y0 = panel.regions(rect).layers_rows_top;
     let mid_x = rect.size.x / 2.0;
     let before = panel
         .drop_target_at(rect, Point2D::new(mid_x, y0 + 4.0))
@@ -596,14 +584,13 @@ fn drop_target_at_in_empty_area_below_rows_drops_at_end() {
         origin: Point2D::new(0.0, 0.0),
         size: Point2D::new(LAYER_PANEL_WIDTH, panel.intrinsic_height() + 200.0),
     };
-    let layers_top = 8.0
-        + SECTION_HEADER_HEIGHT
-        + panel.pages.len() as f32 * PAGE_ROW_HEIGHT
-        + SECTION_GAP
-        + SECTION_HEADER_HEIGHT;
-    let rows_bottom = layers_top + panel.items.len() as f32 * LAYER_ROW_HEIGHT;
+    let r = panel.regions(rect);
+    let rows_bottom = r.layers_rows_top + panel.items.len() as f32 * LAYER_ROW_HEIGHT;
+    // Midway between the last row and the bottom of the Layers viewport.
+    let below = (rows_bottom + r.layers_rows_top + r.layers_view_h) / 2.0;
+    assert!(below > rows_bottom + 1.0, "the fixture leaves empty room");
     let drop = panel
-        .drop_target_at(rect, Point2D::new(rect.size.x / 2.0, rows_bottom + 50.0))
+        .drop_target_at(rect, Point2D::new(rect.size.x / 2.0, below))
         .expect("below-rows hit should drop at end");
     assert_eq!(drop.position, DropPosition::After);
     assert_eq!(drop.anchor, panel.items.last().unwrap().node_id);

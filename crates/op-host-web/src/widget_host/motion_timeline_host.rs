@@ -27,10 +27,32 @@ impl WidgetHost {
         deleted
     }
 
+    /// The CSS cursor of the chrome's resize grips under `(x, y)` or held by
+    /// a drag: the LayerPanel's Pages / Layers divider, then the timeline's
+    /// grips. `""` hands the canvas back to the default arrow. These grips
+    /// are the web shell's only cursor feedback so far.
+    pub fn resize_cursor_css(&self, x: f32, y: f32) -> &'static str {
+        let point = op_editor_ui::Point2D::new(x, y);
+        let split = op_editor_ui::widgets::layer_split_flow::drag_cursor(&self.editor_state)
+            .or_else(|| {
+                self.editor_state.editor_ui.sidebar_open.then(|| {
+                    op_editor_ui::widgets::layer_split_flow::cursor(
+                        &self.editor_state,
+                        &self.layer_panel(),
+                        self.layer_panel_rect(self.last_viewport_h),
+                        point,
+                    )
+                })?
+            });
+        match split {
+            Some(jian_core::CursorHint::ResizeNs) => "ns-resize",
+            _ => self.motion_timeline_cursor_css(x, y),
+        }
+    }
+
     /// The CSS cursor of the timeline's resize grips (its top edge, a
     /// strip's end) under `(x, y)` or held by a drag; `""` hands the canvas
-    /// back to the default arrow. These grips are the web shell's only
-    /// cursor feedback so far.
+    /// back to the default arrow.
     pub fn motion_timeline_cursor_css(&self, x: f32, y: f32) -> &'static str {
         let point = op_editor_ui::Point2D::new(x, y);
         let (vw, vh) = (self.last_viewport_w, self.last_viewport_h);
@@ -51,3 +73,7 @@ impl WidgetHost {
 #[cfg(test)]
 #[path = "motion_timeline_host_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "layer_split_host_tests.rs"]
+mod layer_split_tests;

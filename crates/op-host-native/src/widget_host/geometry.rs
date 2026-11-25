@@ -66,6 +66,12 @@ impl WidgetHostNative {
         self.panel_resize.is_some()
     }
 
+    /// Whether the LayerPanel's Pages / Layers divider is being dragged.
+    /// The runner keeps feeding cursor moves over the rail while it is.
+    pub fn is_resizing_layer_split(&self) -> bool {
+        self.editor_state.editor_ui.layer_split.drag.is_some()
+    }
+
     pub fn chat_resize_hover(
         &self,
         x: f32,

@@ -7,12 +7,15 @@
 //! toolbar actions, …). Everything below is pure `EditorState` mutation
 //! plus widget-layer types, so it stays wasm32-clean.
 
+use op_editor_core::host_drag_state::LayerDragState;
 use op_editor_core::host_press_transitions as core_press;
 use op_editor_core::ui_draft::LayerContextTarget;
 use op_editor_core::{editor_ui_state::EditorUiState, EditorState, ExportQuickRow, Locale, Tool};
 
 use crate::widgets::export_quick_menu::{ExportQuickMenu, ExportQuickMenuHit};
 use crate::widgets::layer_context_menu::LayerContextAction;
+use crate::widgets::layer_panel::LayerPanel;
+use crate::widgets::layer_split_flow;
 use crate::widgets::property_panel_fill;
 use crate::widgets::{
     LayerPanelHit, LocalePicker, PropertyPanel, PropertyPanelAction, ShapeChoice, ShapePicker,
@@ -463,6 +466,36 @@ pub fn apply_shared_top_bar_hit(
 }
 
 // ─── LayerPanel click ──────────────────────────────────────────────────
+
+/// Peek a primary press on the LayerPanel before the click dispatch runs.
+/// The Pages / Layers divider wins over the rows and starts a split drag
+/// (returns `true`: the host repaints and consumes the press). A press on
+/// a layer row instead seeds `layer_drag` with a reorder candidate that a
+/// move past the drag threshold promotes to a drag-to-reorder.
+///
+/// The panel comes first so a host can build it inline
+/// (`&self.layer_panel()`) before lending out its own state fields.
+pub fn layer_panel_press(
+    panel: &LayerPanel,
+    rect: Rect,
+    point: Point2D,
+    state: &mut EditorState,
+    layer_drag: &mut Option<LayerDragState>,
+) -> bool {
+    if layer_split_flow::press(state, panel, rect, point) {
+        return true;
+    }
+    if let Some(LayerPanelHit::Layer(source)) = panel.hit_test(rect, point) {
+        *layer_drag = Some(LayerDragState {
+            source,
+            start_y: point.y,
+            current_x: point.x,
+            current_y: point.y,
+            active: false,
+        });
+    }
+    false
+}
 
 /// Residual host work after [`apply_layer_panel_click`]. Every variant
 /// consumes the click.

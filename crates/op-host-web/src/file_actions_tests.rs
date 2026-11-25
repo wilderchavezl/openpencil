@@ -42,6 +42,17 @@ fn figma_worker_canonical_source_installs_all_pages_eagerly() {
 }
 
 #[test]
+fn app_preferences_preserve_the_layer_panel_split() {
+    let mut previous = EditorState::new();
+    previous.editor_ui.layer_split.pages_height = Some(180.0);
+    let mut next = EditorState::starter();
+
+    preserve_app_preferences(&previous, &mut next);
+
+    assert_eq!(next.editor_ui.layer_split.pages_height, Some(180.0));
+}
+
+#[test]
 fn app_preferences_preserve_runtime_font_availability() {
     let mut previous = EditorState::new();
     previous.editor_ui.font_import_supported = true;

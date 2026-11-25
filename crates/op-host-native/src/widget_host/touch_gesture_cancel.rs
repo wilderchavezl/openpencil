@@ -141,6 +141,7 @@ impl WidgetHostNative {
         cancelled |= self.chat_text_selection_drag.take().is_some();
         cancelled |= self.text_edit_selection_drag.take().is_some();
         cancelled |= self.panel_resize.take().is_some();
+        cancelled |= self.editor_state.editor_ui.layer_split.end_drag();
         cancelled |= self.variables_resize.take().is_some();
         cancelled |= self.node_drag.take().is_some();
         cancelled |= self.handle_drag.take().is_some();

@@ -369,6 +369,8 @@ pub struct LayerRegionInput {
     pub pages: LayerScrollSnapshot,
     pub layers: LayerScrollSnapshot,
     pub metrics: LayerPanelMetrics,
+    /// Pages viewport height chosen with the divider (`None` = default).
+    pub pages_height: Option<f32>,
 }
 
 /// Compute the bounded Pages / Layers scroll-region geometry for a
@@ -383,22 +385,31 @@ pub fn layer_regions(input: LayerRegionInput) -> LayerRegions {
         pages,
         layers,
         metrics,
+        pages_height,
     } = input;
 
     let pages_header_y = rect.origin.y + 8.0;
     let pages_rows_top = pages_header_y + metrics.section_header_height;
     let pages_content = pages_len as f32 * metrics.page_row_height;
-    let pages_view_max = metrics.page_row_height * metrics.pages_max_rows as f32;
-    let mut pages_view_h = pages_content.min(pages_view_max);
-    if metrics.touch {
-        let fixed_height = 8.0
-            + metrics.section_header_height
-            + metrics.section_gap
-            + metrics.section_header_height
-            + metrics.layer_row_height * 3.0
-            + 8.0;
-        pages_view_h = pages_view_h.min((rect.size.y - fixed_height).max(0.0));
-    }
+    let pages_view_h = match pages_height {
+        Some(height) => {
+            let (min, max) = pages_split_bounds(rect, metrics);
+            height.clamp(min, max)
+        }
+        // Touch keeps its row cap (the sheets are short and compact).
+        None if metrics.touch => {
+            let pages_view_max = metrics.page_row_height * metrics.pages_max_rows as f32;
+            pages_content
+                .min(pages_view_max)
+                .min(pages_rail_room(rect, metrics))
+        }
+        // Desktop splits the rows' height evenly between the sections,
+        // within the divider's bounds.
+        None => {
+            let (min, max) = pages_split_bounds(rect, metrics);
+            (pages_rows_room(rect, metrics) / 2.0).clamp(min, max)
+        }
+    };
     let pages = resolve_layer_scroll(pages, pages_content, pages_view_h, rect.size.x);
 
     let layers_header_y = pages_rows_top + pages_view_h + metrics.section_gap;
@@ -417,6 +428,33 @@ pub fn layer_regions(input: LayerRegionInput) -> LayerRegions {
         layers_view_h,
         layers,
     }
+}
+
+/// Height both sections' rows share once the two headers, the gap between
+/// them and the panel insets are placed.
+fn pages_rows_room(rect: Rect, metrics: LayerPanelMetrics) -> f32 {
+    let fixed_height = 8.0
+        + metrics.section_header_height
+        + metrics.section_gap
+        + metrics.section_header_height
+        + 8.0;
+    (rect.size.y - fixed_height).max(0.0)
+}
+
+/// Height left for page rows once the minimum Layers band (one row; three
+/// on touch) is also placed.
+fn pages_rail_room(rect: Rect, metrics: LayerPanelMetrics) -> f32 {
+    let layers_min_rows = if metrics.touch { 3.0 } else { 1.0 };
+    (pages_rows_room(rect, metrics) - metrics.layer_row_height * layers_min_rows).max(0.0)
+}
+
+/// Bounds for a split-driven Pages viewport height (the desktop default and
+/// any divider-chosen height): at least one page row, at most what leaves
+/// Layers its minimum band. A short page list may leave
+/// blank room under its rows — the split is the user's, not the content's.
+pub(crate) fn pages_split_bounds(rect: Rect, metrics: LayerPanelMetrics) -> (f32, f32) {
+    let max = pages_rail_room(rect, metrics);
+    (metrics.page_row_height.min(max), max)
 }
 
 fn resolve_layer_scroll(

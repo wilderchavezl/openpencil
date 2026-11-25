@@ -44,6 +44,8 @@ mod editor_meta_roundtrip_tests;
 mod error;
 #[cfg(test)]
 mod hosted_catalog_tests;
+#[cfg(test)]
+mod layer_split_tests;
 mod load;
 mod load_report;
 #[cfg(test)]
@@ -252,6 +254,8 @@ pub fn set_file_name_display(state: &mut EditorState, path: Option<&std::path::P
 pub fn preserve_app_preferences(previous: &EditorState, next: &mut EditorState) {
     let previous_selected_model = previous.chat.selected_model_entry().cloned();
     next.editor_ui.theme_mode = previous.editor_ui.theme_mode;
+    // The LayerPanel split is a chrome preference, not the document's.
+    next.editor_ui.layer_split.pages_height = previous.editor_ui.layer_split.pages_height;
     next.editor_ui.account_ui_available = previous.editor_ui.account_ui_available;
     next.editor_ui.account = previous.editor_ui.account.clone();
     next.editor_ui.locale = previous.editor_ui.locale;

@@ -99,6 +99,9 @@ pub struct LayerPanel {
     /// Scroll state for the bounded Pages / Layers regions.
     pub pages_scroll: LayerScrollSnapshot,
     pub layers_scroll: LayerScrollSnapshot,
+    /// Pages height chosen with the divider; whether it is being dragged.
+    pub pages_height: Option<f32>,
+    pub split_dragging: bool,
 }
 
 impl LayerPanel {
@@ -194,6 +197,8 @@ impl LayerPanel {
                 state.editor_ui.layer_layers_h_scroll,
                 layers_content_width,
             ),
+            pages_height: state.editor_ui.layer_split.pages_height,
+            split_dragging: state.editor_ui.layer_split.drag.is_some(),
         }
     }
 
@@ -280,6 +285,8 @@ impl LayerPanel {
             hovered_page: None,
             pages_scroll: LayerScrollSnapshot::default(),
             layers_scroll: LayerScrollSnapshot::default(),
+            pages_height: None,
+            split_dragging: false,
         }
     }
 
@@ -303,6 +310,7 @@ impl LayerPanel {
             pages: self.pages_scroll,
             layers: self.layers_scroll,
             metrics: self.metrics,
+            pages_height: self.pages_height,
         })
     }
 
@@ -519,18 +527,8 @@ impl Widget for LayerPanel {
         cx.backend.restore();
 
         y = r.layers_header_y;
-        // Hairline between Pages and Layers sections — mirrors
-        // the TS LayerPanel's `border-t border-border`.
-        cx.backend.fill_rect(
-            Rect {
-                origin: Point2D::new(
-                    rect.origin.x + self.metrics.row_pad_x,
-                    y - self.metrics.section_gap / 2.0,
-                ),
-                size: Point2D::new(rect.size.x - self.metrics.row_pad_x * 2.0, 1.0),
-            },
-            self.theme.border,
-        );
+        // Draggable hairline between the Pages and Layers sections.
+        self.paint_split_divider(cx, rect, &r);
 
         // Layers section header.
         paint_section_header_with_metrics(

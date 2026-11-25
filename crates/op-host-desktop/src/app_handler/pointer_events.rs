@@ -59,8 +59,22 @@ impl DesktopApp {
                     return false;
                 }
             }
-            if self.host.is_dragging_node() || over_layer_panel {
+            if self.host.is_dragging_node() {
                 window.set_cursor(winit::window::CursorIcon::Default);
+            } else if over_layer_panel {
+                // Rows keep the arrow; only the Pages / Layers divider
+                // (hovered or dragged) shows a resize cursor.
+                let divider = self.host.layer_split_cursor(
+                    self.cursor_x,
+                    self.cursor_y,
+                    self.viewport_width,
+                    self.viewport_height,
+                );
+                window.set_cursor(if divider.is_some() {
+                    winit::window::CursorIcon::NsResize
+                } else {
+                    winit::window::CursorIcon::Default
+                });
             } else {
                 // `cursor_hint` hit-tests the layout-resolved render
                 // scene. A mutation since the last paint may have left

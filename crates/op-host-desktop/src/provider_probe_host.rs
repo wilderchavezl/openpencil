@@ -186,9 +186,15 @@ impl DesktopApp {
     /// layer, which cannot reach the store).
     pub(crate) fn persist_ui_pref_changes(&mut self) {
         let ui = &self.host.editor_state().editor_ui;
+        // A divider drag writes the Pages height on every move; save once
+        // it settles instead of rewriting ui.json per frame.
+        if ui.layer_split.drag.is_some() {
+            return;
+        }
         let snapshot = crate::ui_prefs::UiPrefsSnapshot {
             pencil_cursor: ui.pencil_cursor_style,
             agent_swarm: ui.agent_swarm_enabled,
+            layer_pages_height: ui.layer_split.pages_height,
         };
         if self.last_saved_ui_prefs == Some(snapshot) {
             return;

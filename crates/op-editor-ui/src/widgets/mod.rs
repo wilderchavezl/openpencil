@@ -43,11 +43,15 @@ mod layer_panel_hit;
 mod layer_panel_label_tests;
 mod layer_panel_metrics;
 mod layer_panel_paint;
+mod layer_panel_split;
 #[cfg(test)]
 mod layer_panel_tests;
 #[cfg(test)]
 mod layer_panel_touch_tests;
 mod layer_panel_walkers;
+pub mod layer_split_flow;
+#[cfg(test)]
+mod layer_split_tests;
 pub mod path_anchor_context_menu;
 pub mod prompt_center_panel;
 pub use home_surface::{home_enter, HomeEnterBlock, HomeLayout, HomeSurface, HOME_TOPBAR_H};

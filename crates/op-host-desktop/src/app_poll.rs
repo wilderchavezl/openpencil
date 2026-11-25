@@ -180,10 +180,12 @@ impl DesktopApp {
                     || eui.chat_model_picker.open
             };
             // Side-panel resize starts on the gutter but must keep receiving
-            // cursor moves after the pointer crosses back into the layer rail.
+            // cursor moves after the pointer crosses back into the layer rail;
+            // so does a drag of the rail's own Pages / Layers divider.
             let cursor_changed = if over_layer_panel
                 && !self.host.layer_drag_in_progress()
                 && !self.host.is_resizing_panel()
+                && !self.host.is_resizing_layer_split()
                 && !overlay_open
             {
                 false

@@ -155,17 +155,13 @@ fn layer_drag_to_reorder_commits_on_release_with_threshold_move() {
     );
     host.editor_state_mut().clear_selection();
     let row_h = 28.0; // LAYER_ROW_HEIGHT
-    let page_row_h = 32.0; // PAGE_ROW_HEIGHT
-    let section_header_h = 28.0;
-    let section_gap = 8.0;
     let viewport_w = 1440.0;
     let viewport_h = 900.0;
     // The rail's tree no longer starts at the window's top bar: the tab
-    // row (对话 / 图层 / 幻灯片) sits above it, so measure from the
-    // rail's live CONTENT rect.
-    let content_top = host.layers_content_rect(viewport_w, viewport_h).origin.y;
-    let layers_top =
-        content_top + 8.0 + section_header_h + page_row_h + section_gap + section_header_h;
+    // row (对话 / 图层 / 幻灯片) sits above it, and the Pages / Layers
+    // split decides where the layer rows begin — read both from the
+    // panel's live geometry.
+    let layers_top = first_layer_row_top(&host, viewport_w, viewport_h);
     let row_y = |i: usize| layers_top + (i as f32) * row_h + row_h / 2.0;
     let row_x = host.editor_state().editor_ui.layer_panel_width / 2.0;
     host.apply_press(row_x, row_y(0), viewport_w, viewport_h);
@@ -204,13 +200,7 @@ fn layer_drag_below_activation_threshold_is_a_click_not_a_reorder() {
     let row_x = host.editor_state().editor_ui.layer_panel_width / 2.0;
     let viewport_w = 1440.0;
     let viewport_h = 900.0;
-    let row_y_first = host.layers_content_rect(viewport_w, viewport_h).origin.y
-        + 8.0
-        + 28.0
-        + 32.0
-        + 8.0
-        + 28.0
-        + 14.0;
+    let row_y_first = first_layer_row_top(&host, viewport_w, viewport_h) + 14.0;
     host.apply_press(row_x, row_y_first, viewport_w, viewport_h);
     host.apply_cursor_move(row_x, row_y_first + 2.0);
     assert!(
@@ -307,13 +297,7 @@ fn layer_context_group_preserves_multi_selection_and_groups() {
     let viewport_w = 1440.0;
     let viewport_h = 900.0;
     let row_x = host.editor_state().editor_ui.layer_panel_width / 2.0;
-    let first_row_y = host.layers_content_rect(viewport_w, viewport_h).origin.y
-        + 8.0
-        + 28.0
-        + 32.0
-        + 8.0
-        + 28.0
-        + 14.0;
+    let first_row_y = first_layer_row_top(&host, viewport_w, viewport_h) + 14.0;
     assert!(host.apply_right_press(row_x, first_row_y, viewport_w, viewport_h));
     assert_eq!(
         host.editor_state().selection.set.len(),
@@ -327,4 +311,10 @@ fn layer_context_group_preserves_multi_selection_and_groups() {
         host.editor_state().doc.children.first(),
         Some(jian_ops_schema::node::PenNode::Group(_))
     ));
+}
+
+/// Screen y of the first layer row's top in the live LayerPanel.
+fn first_layer_row_top(host: &WidgetHostNative, viewport_w: f32, viewport_h: f32) -> f32 {
+    let rect = host.layers_content_rect(viewport_w, viewport_h);
+    host.layer_panel().regions(rect).layers_rows_top
 }

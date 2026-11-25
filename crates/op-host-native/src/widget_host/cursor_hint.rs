@@ -10,8 +10,8 @@
 
 use super::{cursor_for_handle, CursorHint, WidgetHostNative};
 use op_editor_ui::widgets::{
-    motion_timeline_flow, rotation_corner_at_point, selection_handle_at_point, AIChatHit,
-    AIChatPlaceholder, ChatResizeEdge, PromptCenterPanel,
+    layer_split_flow, motion_timeline_flow, rotation_corner_at_point, selection_handle_at_point,
+    AIChatHit, AIChatPlaceholder, ChatResizeEdge, PromptCenterPanel,
 };
 use op_editor_ui::{Point2D, Rect};
 
@@ -24,6 +24,28 @@ impl WidgetHostNative {
             ChatResizeEdge::Nw | ChatResizeEdge::Se => CursorHint::ResizeNwse,
             ChatResizeEdge::Ne | ChatResizeEdge::Sw => CursorHint::ResizeNesw,
         }
+    }
+
+    /// The north-south cursor over the LayerPanel's Pages / Layers divider
+    /// (or held by its drag). Public because the desktop runner skips
+    /// [`Self::cursor_hint`] over the rail and asks for this one directly.
+    pub fn layer_split_cursor(
+        &self,
+        x: f32,
+        y: f32,
+        viewport_w: f32,
+        viewport_h: f32,
+    ) -> Option<CursorHint> {
+        if !self.layers_panel_visible() {
+            return layer_split_flow::drag_cursor(&self.editor_state);
+        }
+        let rect = self.layers_content_rect(viewport_w, viewport_h);
+        layer_split_flow::cursor(
+            &self.editor_state,
+            &self.layer_panel(),
+            rect,
+            Point2D::new(x, y),
+        )
     }
 
     pub fn cursor_hint(&self, x: f32, y: f32, viewport_w: f32, viewport_h: f32) -> CursorHint {
@@ -46,6 +68,10 @@ impl WidgetHostNative {
         // A timeline resize or strip stretch keeps its cursor wherever the
         // pointer goes.
         if let Some(hint) = motion_timeline_flow::drag_cursor(&self.editor_state) {
+            return hint;
+        }
+        // So does a LayerPanel divider drag.
+        if let Some(hint) = layer_split_flow::drag_cursor(&self.editor_state) {
             return hint;
         }
         // The workspace dock's drag handle resizes the dock — an
@@ -171,6 +197,10 @@ impl WidgetHostNative {
             viewport_w,
             viewport_h,
         ) {
+            return hint;
+        }
+        // The LayerPanel's Pages / Layers divider.
+        if let Some(hint) = self.layer_split_cursor(x, y, viewport_w, viewport_h) {
             return hint;
         }
         // The floating Git panel paints on top of the right-rail
