@@ -424,6 +424,29 @@ impl WidgetHostNative {
         op_editor_ui::widgets::deck_boards::apply_reorder(&mut self.editor_state, board_id, to);
     }
 
+    /// Up / Down after a slide click: frame the previous / next slide,
+    /// the same camera move a row click makes. Claims the key at either
+    /// end of the deck too, so the arrows never nudge the selection
+    /// behind the list; until a slide is clicked they fall through to the
+    /// nudge.
+    pub fn apply_slides_step(&mut self, forward: bool, viewport_w: f32, viewport_h: f32) -> bool {
+        if self.input_active() {
+            return false;
+        }
+        let Some(slides) = self.slides_panel_frame(viewport_w, viewport_h) else {
+            return false;
+        };
+        let state = &mut self.editor_state;
+        let Some(index) = flow::step(state, &slides.layout, slides.active, forward) else {
+            return false;
+        };
+        if let Some(chip) = slides.chips.get(index) {
+            self.frame_slide_board(&chip.id, viewport_w, viewport_h);
+        }
+        self.mark_dirty();
+        true
+    }
+
     /// Wheel / trackpad scroll over the slide list.
     pub(in crate::widget_host) fn slides_panel_scroll(
         &mut self,

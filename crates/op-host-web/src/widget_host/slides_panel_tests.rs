@@ -285,3 +285,39 @@ fn the_tab_row_yields_the_cursor_to_an_open_model_picker() {
         "an overlay above the rail takes the move instead"
     );
 }
+
+#[test]
+fn up_and_down_step_through_the_deck_after_a_slide_click() {
+    let mut host = host_with(Some(TemplateScene::Slides));
+    assert!(
+        !host.apply_slides_step(true),
+        "no slide clicked yet: the arrow falls through to the nudge"
+    );
+    let first = row_centre(&mut host, 0);
+    host.apply_press(first.x, first.y, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    let active = |host: &mut WidgetHost| host.slides_panel_frame(VW, VH).and_then(|s| s.active);
+    assert_eq!(active(&mut host), Some(0));
+
+    assert!(host.apply_slides_step(true));
+    assert_eq!(active(&mut host), Some(1));
+    assert!(host.apply_slides_step(false));
+    assert_eq!(active(&mut host), Some(0));
+    assert!(
+        host.apply_slides_step(false),
+        "the first slide still owns the key"
+    );
+    assert_eq!(active(&mut host), Some(0));
+
+    // A press anywhere else hands the arrows back to the selection…
+    host.apply_press(VW / 2.0, VH / 2.0, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    assert!(!host.apply_slides_step(true));
+
+    // …and so does a right-click, which has its own entry point.
+    host.apply_press(first.x, first.y, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    assert!(host.editor_state.editor_ui.slides_panel.owns_arrow_keys);
+    let _ = host.apply_right_press(VW / 2.0, VH / 2.0, VW, VH);
+    assert!(!host.apply_slides_step(true));
+}

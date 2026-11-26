@@ -252,6 +252,24 @@ impl SlidesPanelLayout {
         (self.content_height() - self.list.size.y).max(0.0)
     }
 
+    /// The scroll offset that brings row `index`, with the gap on either
+    /// side of its card, fully into view while moving the list as little
+    /// as possible — so the first and last rows land the list at its very
+    /// top and bottom. The current offset when the row already shows.
+    pub fn offset_revealing(&self, index: usize) -> f32 {
+        let row = self.row_rect(index);
+        let above = self.list.origin.y - (row.origin.y - ROW_GAP);
+        let below = (row.origin.y + row.size.y + ROW_GAP) - (self.list.origin.y + self.list.size.y);
+        let offset = if above > 0.0 {
+            self.offset - above
+        } else if below > 0.0 {
+            self.offset + below
+        } else {
+            self.offset
+        };
+        offset.clamp(0.0, self.max_scroll())
+    }
+
     /// Rect of row `index`, in screen space. Not clamped to the list: a
     /// row scrolled out of view still has a position, which is what lets
     /// the drag arithmetic work on rows the user cannot see.

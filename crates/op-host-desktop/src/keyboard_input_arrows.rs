@@ -16,8 +16,9 @@ impl DesktopApp {
     /// The inline canvas text editor moves its caret by visual line first;
     /// then the focused chat draft, whose wrapped rows are the only thing
     /// Up/Down can mean while it owns the keyboard; then a focused numeric
-    /// property input steps its value; otherwise the arrow nudges the
-    /// selection.
+    /// property input steps its value; then, once a slide row has been
+    /// clicked, the rail's slides list steps to the previous / next slide;
+    /// otherwise the arrow nudges the selection.
     pub(crate) fn arrow_vertical(&mut self, down: bool, step: f32) -> bool {
         let sign = if down { 1.0 } else { -1.0 };
         self.host.apply_text_edit_vertical(down)
@@ -25,6 +26,9 @@ impl DesktopApp {
                 .host
                 .apply_chat_input_vertical_caret(down, self.shift_modifier)
             || self.host.apply_property_step(-sign * step)
+            || self
+                .host
+                .apply_slides_step(down, self.viewport_width, self.viewport_height)
             || self.host.apply_nudge(0.0, sign * step)
     }
 

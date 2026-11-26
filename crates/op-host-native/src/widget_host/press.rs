@@ -98,6 +98,12 @@ impl WidgetHostNative {
     /// a layer row OR page row.
     pub fn apply_right_press(&mut self, x: f32, y: f32, viewport_w: f32, viewport_h: f32) -> bool {
         let cancelled = self.cancel_native_touch_gestures();
+        // A right-click is a press too: it hands Up / Down back to the
+        // selection, the same as the top of `apply_press_inner`.
+        self.editor_state
+            .editor_ui
+            .slides_panel
+            .release_arrow_keys();
         if self.editor_state.editor_ui.agent_settings_open {
             return true;
         }
@@ -208,6 +214,12 @@ impl WidgetHostNative {
     ) -> bool {
         self.last_viewport_w = viewport_width;
         self.last_viewport_h = viewport_height;
+        // Any press hands Up / Down back to the selection; a slide click
+        // takes them again on release (`slides_panel_flow::step`).
+        self.editor_state
+            .editor_ui
+            .slides_panel
+            .release_arrow_keys();
         // Home is a full-surface first-launch entry and owns every pointer
         // event before document chrome or canvas tiers can see it — but the
         // overlays Home itself opens (agent settings, sign-in modal, the

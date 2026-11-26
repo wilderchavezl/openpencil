@@ -539,3 +539,70 @@ fn the_inner_half_of_the_gutter_starts_a_resize_too() {
         "the drag is measured from the press point, not the edge"
     );
 }
+
+fn active_slide(host: &mut WidgetHostNative) -> Option<usize> {
+    host.slides_panel_frame(VW, VH)
+        .expect("a deck shows the slides tab")
+        .active
+}
+
+#[test]
+fn up_and_down_step_through_the_deck_and_stop_at_the_ends() {
+    let _guard = test_lock();
+    let mut host = host_with(Some(TemplateScene::Slides));
+    let first = row_centre(&mut host, 0);
+    host.apply_press(first.x, first.y, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    assert_eq!(active_slide(&mut host), Some(0));
+
+    assert!(host.apply_slides_step(true, VW, VH));
+    assert_eq!(active_slide(&mut host), Some(1));
+    assert!(host.apply_slides_step(true, VW, VH));
+    assert_eq!(active_slide(&mut host), Some(2));
+    assert!(
+        host.apply_slides_step(true, VW, VH),
+        "the last slide still owns the key"
+    );
+    assert_eq!(active_slide(&mut host), Some(2));
+    assert!(host.apply_slides_step(false, VW, VH));
+    assert_eq!(active_slide(&mut host), Some(1));
+    assert!(
+        host.editor_state.history.past.is_empty(),
+        "stepping the deck is camera-only"
+    );
+}
+
+/// The arrows keep nudging the selection until a slide is clicked; a
+/// slide click hands them to the list, and a press anywhere else hands
+/// them back.
+#[test]
+fn only_a_slide_click_takes_the_arrows_from_the_selection() {
+    let _guard = test_lock();
+    let mut host = host_with(Some(TemplateScene::Slides));
+    host.editor_state
+        .set_single_selection(op_editor_core::NodeId::new("slide-1".to_string()));
+    assert!(
+        !host.apply_slides_step(true, VW, VH),
+        "no slide clicked yet: the arrow falls through to the nudge"
+    );
+
+    let row = row_centre(&mut host, 0);
+    host.apply_press(row.x, row.y, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    let before = board_geometry(&host);
+    assert!(host.apply_slides_step(true, VW, VH));
+    assert_eq!(board_geometry(&host), before, "nothing was nudged");
+
+    // A press on the canvas hands the arrows back to the selection.
+    let (cx, cy, cw, ch) = host.canvas_region(VW, VH);
+    host.apply_press(cx + cw / 2.0, cy + ch / 2.0, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    assert!(!host.apply_slides_step(true, VW, VH));
+
+    // So does a right-click, which has its own entry point.
+    host.apply_press(row.x, row.y, VW, VH);
+    host.apply_release_with_viewport(VW, VH);
+    assert!(host.editor_state.editor_ui.slides_panel.owns_arrow_keys);
+    let _ = host.apply_right_press(cx + cw / 2.0, cy + ch / 2.0, VW, VH);
+    assert!(!host.apply_slides_step(true, VW, VH));
+}

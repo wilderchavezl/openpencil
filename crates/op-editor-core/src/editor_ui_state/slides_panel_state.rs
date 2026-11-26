@@ -98,6 +98,10 @@ pub struct SlidesPanelState {
     pub export_menu_open: bool,
     /// Vertical scroll of the slide list.
     pub scroll: ScrollState,
+    /// Whether bare Up / Down step the deck instead of nudging the
+    /// selection. A click on a slide row hands the arrows to the list;
+    /// any other press hands them back (see `release_arrow_keys`).
+    pub owns_arrow_keys: bool,
 }
 
 impl SlidesPanelState {
@@ -116,7 +120,16 @@ impl SlidesPanelState {
         self.hover = None;
         self.pressed = None;
         self.drag = None;
+        self.owns_arrow_keys = false;
         self.close_export_menu() || live
+    }
+
+    /// Hand the arrow keys back to the selection. Both hosts call this at
+    /// the top of every press (right-clicks included), so the list keeps them only from a slide
+    /// click until the next press anywhere else; the slide click itself
+    /// takes them again on release.
+    pub fn release_arrow_keys(&mut self) {
+        self.owns_arrow_keys = false;
     }
 
     /// Close the export dropdown. Returns whether it was open, which is
@@ -212,6 +225,7 @@ mod tests {
             }),
             export_menu_open: false,
             scroll: ScrollState { offset: 24.0 },
+            owns_arrow_keys: true,
         };
         assert!(state.clear_pointer());
         assert_eq!(state.tab, LeftPanelTab::Slides);
@@ -219,6 +233,10 @@ mod tests {
         assert_eq!(state.hover, None);
         assert_eq!(state.pressed, None);
         assert_eq!(state.drag, None);
+        assert!(
+            !state.owns_arrow_keys,
+            "a hidden list cannot keep the arrows"
+        );
         // Idle again — nothing to repaint for.
         assert!(!state.clear_pointer());
     }

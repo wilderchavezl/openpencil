@@ -427,7 +427,11 @@ pub fn release(state: &mut EditorState, layout: &SlidesPanelLayout) -> SlidesRel
         SlidesPanelTarget::ChatTab => SlidesRelease::SelectTab(LeftPanelTab::Chat),
         SlidesPanelTarget::LayersTab => SlidesRelease::SelectTab(LeftPanelTab::Layers),
         SlidesPanelTarget::SlidesTab => SlidesRelease::SelectTab(LeftPanelTab::Slides),
-        SlidesPanelTarget::Slide(index) => SlidesRelease::Activate(index),
+        SlidesPanelTarget::Slide(index) => {
+            // Clicking a slide hands the arrows to the list (see `step`).
+            state.editor_ui.slides_panel.owns_arrow_keys = true;
+            SlidesRelease::Activate(index)
+        }
         SlidesPanelTarget::Present => SlidesRelease::Present,
         SlidesPanelTarget::ExportMenu => {
             let ui = &mut state.editor_ui.slides_panel;
@@ -522,6 +526,35 @@ pub fn select_tab(state: &mut EditorState, tab: LeftPanelTab) -> bool {
     true
 }
 
+/// Step the deck with Up / Down once a slide click has handed the list
+/// the arrows: pick the slide before or after `active` (the one the
+/// camera is on) and scroll its row into view. Returns the slide to frame
+/// — the host moves the camera, the same tail a row click runs — or
+/// `None` when the arrows still belong to the selection (no slide clicked
+/// since the last press elsewhere) or the list is empty.
+///
+/// The ends clamp rather than wrap, so holding the key stops on the first
+/// or last slide and the arrows stay with the list. With no active slide
+/// (the camera is between boards) the press starts from the first one.
+pub fn step(
+    state: &mut EditorState,
+    layout: &SlidesPanelLayout,
+    active: Option<usize>,
+    forward: bool,
+) -> Option<usize> {
+    if !state.editor_ui.slides_panel.owns_arrow_keys {
+        return None;
+    }
+    let last = layout.count.checked_sub(1)?;
+    let target = match active {
+        None => 0,
+        Some(index) if forward => (index + 1).min(last),
+        Some(index) => index.saturating_sub(1),
+    };
+    state.editor_ui.slides_panel.scroll.offset = layout.offset_revealing(target);
+    Some(target)
+}
+
 /// Scroll the slide list. `None` when the pointer is not over the
 /// panel, so the caller keeps looking.
 pub fn scroll(
@@ -545,3 +578,7 @@ pub fn scroll(
 #[cfg(test)]
 #[path = "slides_panel_flow_tests.rs"]
 mod slides_panel_flow_tests;
+
+#[cfg(test)]
+#[path = "slides_panel_step_tests.rs"]
+mod slides_panel_step_tests;

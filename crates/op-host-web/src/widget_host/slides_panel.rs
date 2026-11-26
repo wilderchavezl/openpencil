@@ -310,6 +310,28 @@ impl WidgetHost {
         }
     }
 
+    /// Up / Down after a slide click: frame the previous / next slide.
+    /// Same contract as native's twin, over the last painted viewport
+    /// because the keydown carries none.
+    pub fn apply_slides_step(&mut self, forward: bool) -> bool {
+        if self.input_active() {
+            return false;
+        }
+        let (viewport_w, viewport_h) = (self.last_viewport_w, self.last_viewport_h);
+        let Some(slides) = self.slides_panel_frame(viewport_w, viewport_h) else {
+            return false;
+        };
+        let state = &mut self.editor_state;
+        let Some(index) = flow::step(state, &slides.layout, slides.active, forward) else {
+            return false;
+        };
+        if let Some(chip) = slides.chips.get(index) {
+            self.frame_slide_board(&chip.id, viewport_w, viewport_h);
+        }
+        self.mark_dirty();
+        true
+    }
+
     /// Frame one board in the canvas region. Camera only.
     fn frame_slide_board(&mut self, board_id: &str, viewport_w: f32, viewport_h: f32) {
         self.refresh_layout_scene();

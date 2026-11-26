@@ -623,6 +623,8 @@ impl EditorUiState {
         self.last_revealed_layer_anchor = None;
         self.last_layer_click = None;
         self.last_canvas_click = None;
+        // A new deck: its slides have not been clicked yet.
+        self.slides_panel.release_arrow_keys();
         self.entered_container = None;
         self.active_guides.clear();
         self.padding_edit_mode = None;

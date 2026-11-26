@@ -96,12 +96,14 @@ pub(super) fn register_keyboard_listeners(
                     consumed = b.host.apply_home_vertical_caret(false, shift)
                         || b.host.apply_text_edit_vertical(false)
                         || b.host.apply_chat_input_vertical_caret(false, shift)
+                        || b.host.apply_slides_step(false)
                         || b.host.apply_nudge(0.0, -nudge)
                 }
                 "ArrowDown" if !is_mod => {
                     consumed = b.host.apply_home_vertical_caret(true, shift)
                         || b.host.apply_text_edit_vertical(true)
                         || b.host.apply_chat_input_vertical_caret(true, shift)
+                        || b.host.apply_slides_step(true)
                         || b.host.apply_nudge(0.0, nudge)
                 }
                 "ArrowLeft" if is_mod && image_popover_open => {

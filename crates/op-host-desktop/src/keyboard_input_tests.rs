@@ -671,3 +671,46 @@ fn home_modal_keyboard_chords_edit_settings_without_selecting_the_hidden_brief()
     assert_eq!(ui.home.input.caret(), "keep this brief".len());
     assert_eq!(ui.home.input.highlight_range(), None);
 }
+
+/// With the rail's slides tab showing, bare Up / Down keep nudging the
+/// selection until a slide row is clicked, and step the deck after it:
+/// the arm sits right above `apply_nudge` in `arrow_vertical`, so this
+/// fails if it falls below it.
+#[test]
+fn slides_tab_arrows_nudge_until_a_slide_click_then_step_the_deck() {
+    let document = jian_ops_schema::load_str(PRESENTING_DECK)
+        .expect("parse deck fixture")
+        .value;
+    let mut app = DesktopApp::new(None);
+    app.host
+        .install_imported_state(op_editor_core::EditorState::from_document(document));
+    let state = app.host.editor_state_mut();
+    state.editor_ui.sidebar_open = true;
+    state.editor_ui.slides_panel.tab = op_editor_core::LeftPanelTab::Slides;
+    state.set_single_selection(op_editor_core::NodeId::new("slide-1"));
+    let first_y = |app: &DesktopApp| app.host.editor_state().active_children()[0].base().y;
+    let y_before = first_y(&app);
+
+    press(&mut app, NamedKey::ArrowDown);
+    assert_ne!(
+        first_y(&app),
+        y_before,
+        "no slide clicked: the board was nudged"
+    );
+
+    // What a click on a slide row leaves behind (see `slides_panel_flow`).
+    let y_before = first_y(&app);
+    let camera_before = app.host.editor_state().viewport;
+    app.host
+        .editor_state_mut()
+        .editor_ui
+        .slides_panel
+        .owns_arrow_keys = true;
+    press(&mut app, NamedKey::ArrowDown);
+    assert_eq!(first_y(&app), y_before, "the selected board was not nudged");
+    assert_ne!(
+        app.host.editor_state().viewport,
+        camera_before,
+        "the camera framed a slide"
+    );
+}

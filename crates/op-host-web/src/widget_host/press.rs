@@ -25,6 +25,11 @@ impl WidgetHost {
     /// Right-click handler — opens the LayerPanel context menu on
     /// a layer or page row.
     pub fn apply_right_press(&mut self, x: f32, y: f32, viewport_w: f32, viewport_h: f32) -> bool {
+        // Same as native: a right-click hands Up / Down back too.
+        self.editor_state
+            .editor_ui
+            .slides_panel
+            .release_arrow_keys();
         self.commit_variable_row_focus_if_any();
         self.close_image_popovers_for_higher_overlay();
         if self.over_topmost_panel(x, y, viewport_w, viewport_h) {
@@ -142,6 +147,11 @@ impl WidgetHost {
         self.last_viewport_h = viewport_height;
         self.last_cursor_x = x;
         self.last_cursor_y = y;
+        // Same as native: any press hands Up / Down back to the selection.
+        self.editor_state
+            .editor_ui
+            .slides_panel
+            .release_arrow_keys();
         // Refresh the derived paint doc once up front — every hit-test
         // below reads `&self.layout_scene`, so it must be current.
         self.refresh_layout_scene();
